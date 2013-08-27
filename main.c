@@ -13,6 +13,7 @@
 #pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
 #pragma config BOREN = ON       // Brown-out Reset Enable bit (BOR enabled)
 #pragma config CP = OFF         // Flash Program Memory Code Protection bit (Code protection off)
+#pragma config LVP = OFF
 
 // Globals
 int temperature;
@@ -35,13 +36,15 @@ void setup(void) {
     INTCONbits.TMR0IE = 1;    // Enable Timer 1 interrupt
 }
 
+void enableDigit(char position) {
+    char mask = 0b00000001; // A0:2
+    mask = mask << position;
+    PORTA = mask;
+}
 void displayDigit(char position, char value) {
     char tmp_port_c;
     char digits[10] = {0x22, 0xaf, 0x31, 0x25, 0xac, 0x64, 0x60, 0x2f, 0x20, 0x24};
     char digit;
-
-    char mask = 0b00000001; // A0:2
-    mask = mask << position;
 
     tmp_port_c = PORTC;
 
@@ -51,11 +54,11 @@ void displayDigit(char position, char value) {
     PORTB = (digit >> 2);
     PORTC = (tmp_port_c | (digit & 3));
 
-    PORTA = mask;       // turn on our light
+    enableDigit(position);
 }
 
 void interrupt tc_int(void) {
-    if (T0IE && T0IF) {
+    if (T0IE && T0IF) {  // Timer 0 resets quickly
         T0IF = 0;
         char display;
         if (digit == 0) {
@@ -74,8 +77,9 @@ void interrupt tc_int(void) {
 int main(void) {
 
     setup();
-  
+
     while(1) {
+        
   
     }
    

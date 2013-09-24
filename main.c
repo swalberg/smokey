@@ -112,7 +112,7 @@ void displayDigit(char position, char value) {
 }
 
 void interrupt tc_int(void) {
-    if (0 && T0IE && T0IF) {  // Timer 0 resets quickly
+    if (T0IE && T0IF) {  // Timer 0 resets quickly
         T0IF = 0;
         char display;
         if (digit == 0) {
@@ -133,8 +133,14 @@ int main(void) {
     int d;
     setup();
     while(1) {
-        if (PORTAbits.RA3 == 1 || PORTAbits.RA4 == 1 || PORTAbits.RA5 == 1) {
-            temperature = 123;
+        if (PORTAbits.RA3 == 1) {
+            temperature = 111;
+        }
+        if (PORTAbits.RA4 == 1) {
+            temperature = 222;
+        }
+        if (PORTAbits.RA5 == 1) {
+            temperature = 333;
         }
         d = 5;
         

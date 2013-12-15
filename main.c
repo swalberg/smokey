@@ -18,6 +18,8 @@
 
 // Globals
 int temperature;
+char mode = 0;
+int foo = 100;
 char digit;
 
 void spiSlaveDisable(char);
@@ -75,9 +77,10 @@ int readTemperature(void) {
     char b1, b2;
 
     spiSlaveEnable(0);
-    __delay_ms( 1 );
+    __delay_ms(1);
     b1 = readSPIByte();
     b2 = readSPIByte();
+    __delay_ms(1);
     
     spiSlaveDisable(0);
 
@@ -86,12 +89,12 @@ int readTemperature(void) {
 }
 
 void spiSlaveEnable(char device) {
-    // enable the MAX31855
+    // enable the MAX6675
     PORTC &= 0b10111111;
 }
 
 void spiSlaveDisable(char device) {
-    // Turn off the MAX31855
+    // Turn off the MAX6675
     PORTC |= 0b01000000;
 }
 
@@ -111,18 +114,23 @@ void displayDigit(char position, char value) {
     enableDigit(position);
 }
 
+char pickDigit(char position, int from) {
+    char display;
+    
+    if (position == 0) {
+        display = (from - (from % 100)) / 100;
+    } else if (position == 1) {
+        display = (from % 100 - from % 10) / 10;
+    } else {
+        display = from % 10;
+    }
+    return(display);
+}
 void interrupt tc_int(void) {
     if (T0IE && T0IF) {  // Timer 0 resets quickly
         T0IF = 0;
-        char display;
-        if (digit == 0) {
-            display = (temperature - (temperature % 100)) / 100;
-        } else if (digit == 1) {
-            display = (temperature % 100 - temperature % 10) / 10;
-        } else {
-            display = temperature % 10;
-        }
-        displayDigit(digit++, display);
+        displayDigit(digit, pickDigit(digit, mode == 0 ? temperature : foo));
+        digit++;
         digit %= 3;
         return;
   }
@@ -134,18 +142,19 @@ int main(void) {
     setup();
     while(1) {
         if (PORTAbits.RA3 == 1) {
-            temperature = 111;
+            mode = ! mode;
+            while (PORTAbits.RA3 == 1) ;
         }
         if (PORTAbits.RA4 == 1) {
-            temperature = 222;
+            foo++;
+            while (PORTAbits.RA4 == 1) ;
         }
         if (PORTAbits.RA5 == 1) {
-            temperature = 333;
+            foo--;
+            while (PORTAbits.RA5 == 1) ;
         }
-        d = 5;
-        
-       // readTemperature();
-     //   __delay_ms( 10 );
+        readTemperature();
+        __delay_ms( 100 );
     }
    
     return 0;

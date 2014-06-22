@@ -147,12 +147,9 @@ void orange(int status) {
     PORTB |= (status << 4);
 }
 
-int main(void) {
-
-    int d;
-    setup();
-
-    while (1) {
+void forward(int steps) {
+    int i;
+    for (i=0; i < steps; i++) {
         blue(ON);
         pink(OFF);
         yellow(OFF);
@@ -180,9 +177,51 @@ int main(void) {
         orange(ON);
 
         stepper_delay();
+    }
+
+}
+
+void backward(int steps) {
+    int i;
+    for (i=0; i < steps; i++) {
+        blue(OFF);
+        pink(OFF);
+        yellow(OFF);
+        orange(ON);
+
+        stepper_delay();
+
+        blue(OFF);
+        pink(OFF);
+        yellow(ON);
+        orange(OFF);
+
+        stepper_delay();
+
+        blue(OFF);
+        pink(ON);
+        yellow(OFF);
+        orange(OFF);
+
+        stepper_delay();
+
+        blue(ON);
+        pink(OFF);
+        yellow(OFF);
+        orange(OFF);
+
+        stepper_delay();
 
     }
 
+}
+
+
+int main(void) {
+
+    int d;
+    setup();
+   
     while(1) {
        pidData.temperature = readTemperature();
        pidData.error = percentage_error(pidData.temperature, pidData.setpoint);

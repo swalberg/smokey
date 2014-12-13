@@ -1,0 +1,4 @@
+build/*
+dist/*
+l.obj
+nbproject/private/private.xml

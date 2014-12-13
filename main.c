@@ -15,6 +15,10 @@
 #include "spi.h"
 #include "motor.h"
 
+#define MAX_INTEGRAL 250
+#define MIN_INTEGRAL 0
+#define MAX_OPEN 160
+
 typedef struct {
     double error;
     double setpoint;
@@ -34,7 +38,7 @@ unsigned long int current_time;
 void setup(void) {
 
     pidData.accumulated_error = 0;
-    pidData.setpoint = 225;
+    pidData.setpoint = 110; // Celsius!
     pidData.error = 0;
     current_time = 0;
     
@@ -88,15 +92,29 @@ void interrupt tc_int(void) {
     
     if (T0IE && T0IF) {  // Timer 0 resets quickly
         T0IF = 0;
-        displayDigit(digit, pickDigit(digit, mode == 0 ? (int)pidData.temperature : foo));
+        switch(mode) {
+            case 0: // temp
+                displayDigit(digit, pickDigit(digit, (int)pidData.temperature));
+                break;
+            case 1: // last value of pid
+                displayDigit(digit, pickDigit(digit, (int)pidData.last_value));
+                break;
+            case 2: // acc error
+                displayDigit(digit, pickDigit(digit, (int)pidData.accumulated_error));
+                break;
+        }
         digit++;
         digit %= 3;
         return;
     }
 
     if (TMR1IE && TMR1IF) { // every .1 seconds
- //       PORTDbits.RD2 = ! PORTDbits.RD2;
         current_time++;
+       
+        if (current_time % 128 == 0) {
+            mode += 1;
+            mode %= 3;
+        }
         TMR1IF=0;
     }
 }
@@ -115,15 +133,15 @@ double run_pid(pidInfoStruct *pid) {
 
     pid->error = pid->setpoint - pid->temperature;
     pid->accumulated_error += pid->error;
-    if (pid->accumulated_error > 1000) {
-        pid->accumulated_error = 1000;
+    if (pid->accumulated_error > MAX_INTEGRAL) {
+        pid->accumulated_error = MAX_INTEGRAL;
     }
-    if (pid->accumulated_error < -1000) {
-        pid->accumulated_error = -1000;
+    if (pid->accumulated_error < MIN_INTEGRAL) {
+        pid->accumulated_error = MIN_INTEGRAL;
     }
     
-    p = 2 * pid->error;
-    i = 2 * pid->accumulated_error;
+    p = 20 * pid->error;
+    i = 0.2 * pid->accumulated_error;
     d = pid->error - pid->last_error;
     
     pid->last_error = pid->error;
@@ -138,8 +156,8 @@ int move_to(int from, int to) {
     if (to < 0) {
         to = 0;
     }
-    if (to > 1000) {
-        to = 1000;
+    if (to > MAX_OPEN) {
+        to = MAX_OPEN;
     }
 
     if (from > to) {
@@ -156,10 +174,11 @@ int main(void) {
 
     current_position = 0;
     setup();
-    PORTD=0xff;
+
+    backward(150); forward(150);
     while(1) {
-       setting = run_pid(&pidData);
-       current_position = move_to(current_position, (int)pidData.last_value);
+        setting = run_pid(&pidData);
+        current_position = move_to(current_position, (int)pidData.last_value);
         __delay_ms( 10 );
     }
    

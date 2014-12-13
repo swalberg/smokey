@@ -1,4 +1,5 @@
 #include <xc.h>
+#include <math.h>
 
 void enableDigit(char position) {
     char mask = 0b00000001; // E0:2
@@ -20,7 +21,9 @@ void displayDigit(char position, char value) {
 
 char pickDigit(char position, int from) {
     char display;
-
+    if (from < 0) { from = -from; }
+    if (from >= 1000) { from = 999; }
+    
     if (position == 0) {
         display = (from - (from % 100)) / 100;
     } else if (position == 1) {
